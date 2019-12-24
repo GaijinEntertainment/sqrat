@@ -76,7 +76,7 @@ public:
             sq_push(vm, i);
         }
 
-        SQRESULT result = sq_call(vm, argCount + 1, true, ErrorHandling::IsEnabled());
+        SQRESULT result = sq_call(vm, argCount + 1, true, SQTrue);
         return SQ_SUCCEEDED(result) ? 1 : SQ_ERROR;
     }
 };
@@ -109,7 +109,7 @@ public:
             sq_push(vm, i);
         }
 
-        SQRESULT result = sq_call(vm, argCount + 1, false, ErrorHandling::IsEnabled());
+        SQRESULT result = sq_call(vm, argCount + 1, false, SQTrue);
         return SQ_SUCCEEDED(result) ? 0 : SQ_ERROR;
     }
 };

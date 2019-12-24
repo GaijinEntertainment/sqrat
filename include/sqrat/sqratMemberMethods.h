@@ -137,7 +137,7 @@ inline SQInteger sqVarGet(HSQUIRRELVM vm) {
     sq_push(vm, 1);
 
     // Call the getter
-    SQRESULT result = sq_call(vm, 1, true, ErrorHandling::IsEnabled());
+    SQRESULT result = sq_call(vm, 1, true, SQTrue);
     return SQ_SUCCEEDED(result) ? 1 : SQ_ERROR;
 }
 
@@ -193,7 +193,7 @@ inline SQInteger sqVarSet(HSQUIRRELVM vm) {
     sq_push(vm, 3);
 
     // Call the setter
-    SQRESULT result = sq_call(vm, 2, false, ErrorHandling::IsEnabled());
+    SQRESULT result = sq_call(vm, 2, false, SQTrue);
     return SQ_SUCCEEDED(result) ? 0 : SQ_ERROR;
     }
 
