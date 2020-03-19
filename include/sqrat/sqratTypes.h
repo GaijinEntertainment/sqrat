@@ -30,7 +30,6 @@
 #define _SQRAT_TYPES_H_
 
 #include <squirrel.h>
-#include <EASTL/string.h>
 
 #include "sqratClassType.h"
 #include "sqratUtil.h"
@@ -43,7 +42,7 @@ struct popAsInt
 {
     static bool pop(HSQUIRRELVM vm, SQInteger idx, T &value)
     {
-        static_assert(eastl::is_convertible<T, SQInteger>::value, "type is not convertible to int");
+        static_assert(SQRAT_STD::is_convertible<T, SQInteger>::value, "type is not convertible to int");
 
         SQObjectType value_type = sq_gettype(vm, idx);
         switch(value_type) {
@@ -80,7 +79,7 @@ struct popAsFloat
 {
     static bool pop(HSQUIRRELVM vm, SQInteger idx, T& value)
     {
-        static_assert(eastl::is_convertible<T, float>::value, "type is not convertible to float");
+        static_assert(SQRAT_STD::is_convertible<T, float>::value, "type is not convertible to float");
 
         SQObjectType value_type = sq_gettype(vm, idx);
         switch(value_type) {
@@ -160,7 +159,7 @@ struct VarControlsValueLifeTime
 template<class Callable> SQFUNCTION SqGlobalThunk();
 
 template<typename Func>
-struct Var<Func, eastl::enable_if_t<is_callable_v<Func>>>
+struct Var<Func, SQRAT_STD::enable_if_t<is_callable_v<Func>>>
 {
   static void push(HSQUIRRELVM vm, const Func& value)
   {
@@ -188,7 +187,7 @@ struct Var<T&> {
     static void push(HSQUIRRELVM vm, T& value) {
         if (ClassT::hasClassData(vm))
         {
-          if (eastl::is_const<T>::value)
+          if (SQRAT_STD::is_const<T>::value)
             ClassT::PushInstanceCopy(vm, value);
           else
             ClassT::PushInstance(vm, const_cast<remove_const_t<T>*>(&value));
@@ -206,7 +205,7 @@ struct Var<T&> {
 
 /// Used to get and push class instances to and from the stack as pointers
 template<class T>
-struct Var<T*, eastl::enable_if_t<!is_callable_v<T*>>> {
+struct Var<T*, SQRAT_STD::enable_if_t<!is_callable_v<T*>>> {
 
     using ClassT = ClassType<remove_const_t<T>>;
     T* value; ///< The actual value of get operations
@@ -231,8 +230,28 @@ struct Var<T*, eastl::enable_if_t<!is_callable_v<T*>>> {
 };
 
 
-/// Used to get (as copies) and push (as references) class instances to and from the stack as a eastl::shared_ptr
+/// Used to get (as copies) and push (as references) class instances to and from the stack as a std::shared_ptr
 template<class T> void PushVarR(HSQUIRRELVM vm, T& value);
+template<class T>
+struct Var<std::shared_ptr<T> > {
+
+    std::shared_ptr<T> value; ///< The actual value of get operations
+
+    /// Attempts to get the value off the stack at idx as the given type
+    Var(HSQUIRRELVM vm, SQInteger idx) {
+        if (sq_gettype(vm, idx) != OT_NULL) {
+            Var<T> instance(vm, idx);
+            value.reset(new T(instance.value));
+        }
+    }
+
+    /// Called by Sqrat::PushVar to put a class object on the stack
+    static void push(HSQUIRRELVM vm, const std::shared_ptr<T>& value) {
+        PushVarR(vm, *value);
+    }
+};
+
+#if defined(SQRAT_HAS_EASTL)
 template<class T>
 struct Var<eastl::shared_ptr<T> > {
 
@@ -251,6 +270,7 @@ struct Var<eastl::shared_ptr<T> > {
         PushVarR(vm, *value);
     }
 };
+#endif
 
 // Integer types
 #define SQRAT_INTEGER( type ) \
@@ -348,7 +368,7 @@ SQRAT_FLOAT(double)
 ///////////////////////////////////////
 
 template<typename T>
-struct Var<T, typename eastl::enable_if<eastl::is_enum<T>::value, void>::type> {
+struct Var<T, typename SQRAT_STD::enable_if<SQRAT_STD::is_enum<T>::value, void>::type> {
     T value;
     Var(HSQUIRRELVM vm, SQInteger idx) {
         SQInteger intVal = 0;
@@ -584,12 +604,12 @@ struct Var<const string&> {
 
 
 // Non-referencable type definitions
-template <class T, class = void> struct is_referencable : public eastl::true_type {};
+template <class T, class = void> struct is_referencable : public SQRAT_STD::true_type {};
 template <class T>
-struct is_referencable<T, eastl::enable_if_t<eastl::is_scalar<T>::value>> : public eastl::false_type {};
+struct is_referencable<T, SQRAT_STD::enable_if_t<SQRAT_STD::is_scalar<T>::value>> : public SQRAT_STD::false_type {};
 
 #define SQRAT_MAKE_NONREFERENCABLE( type ) \
- template<> struct is_referencable<type> : public eastl::false_type {};
+ template<> struct is_referencable<type> : public SQRAT_STD::false_type {};
 
 SQRAT_MAKE_NONREFERENCABLE(string)
 
@@ -648,35 +668,27 @@ struct PushVarR_helper<T, false> {
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<class T>
 inline void PushVarR(HSQUIRRELVM vm, T& value) {
-    if (!eastl::is_pointer<T>::value && is_referencable<typename eastl::remove_cv<T>::type>::value) {
+    if (!SQRAT_STD::is_pointer<T>::value && is_referencable<typename SQRAT_STD::remove_cv<T>::type>::value) {
         Var<T&>::push(vm, value);
     } else {
-        PushVarR_helper<T, eastl::is_scalar<T>::value>::push(vm, value);
+        PushVarR_helper<T, SQRAT_STD::is_scalar<T>::value>::push(vm, value);
     }
 }
 
 namespace vargs
 {
-  template <typename T>
-  eastl::tuple<Var<T>> make_vars(HSQUIRRELVM vm, int idx)
+  template <typename... Args, size_t... Indeces>
+  SQRAT_STD::tuple<Var<Args>...> make_vars_i(HSQUIRRELVM vm, int idx, SQRAT_STD::index_sequence<Indeces...>)
   {
-    return eastl::make_tuple(Var<T>(vm, idx));
+    ((void)idx);
+    ((void)vm);
+    return SQRAT_STD::make_tuple(Var<Args>(vm, idx + Indeces)...);
   }
 
-  template <typename Head, typename... Tail>
-  eastl::tuple<Var<Head>, Var<Tail>...>
-    make_vars(HSQUIRRELVM vm, int idx, eastl::enable_if_t<(sizeof...(Tail) > 0), bool> = false)
+  template <typename... Args>
+  SQRAT_STD::tuple<Var<Args>...> make_vars(HSQUIRRELVM vm, int idx)
   {
-    return eastl::tuple_cat(eastl::make_tuple(Var<Head>(vm, idx)),
-                            make_vars<Tail...>(vm, idx + 1));
-  }
-
-  template <typename... T>
-  eastl::tuple<T...> make_vars(HSQUIRRELVM /*vm*/,
-                               int /*idx*/,
-                               eastl::enable_if_t<(sizeof...(T) == 0), bool> = false)
-  {
-    return eastl::make_tuple<T...>();
+    return make_vars_i<Args...>(vm, idx, SQRAT_STD::index_sequence_for<Args...>());
   }
 
   template <typename T>
@@ -690,8 +702,11 @@ namespace vargs
         sq_getstring(vm, -1, &argTypeName);
       }
 
-      eastl::string errMsg(eastl::string::CtorSprintf(), _SC("Wrong argument type, expected '%s', got '%s'"),
-        Var<T>::getVarTypeName(), argTypeName);
+      int l = SQRAT_SPRINTF(nullptr, 0, _SC("Wrong argument type, expected '%s', got '%s'"),
+                            Var<T>::getVarTypeName(), argTypeName);
+      string errMsg(l + 1, '\0');
+      SQRAT_SPRINTF(&errMsg[0], errMsg.size(), _SC("Wrong argument type, expected '%s', got '%s'"),
+                    Var<T>::getVarTypeName(), argTypeName);
       sq_settop(vm, prevTop);
       sq_throwerror(vm, errMsg.c_str());
       return false;
@@ -700,7 +715,7 @@ namespace vargs
   }
 
   template <typename Head, typename... Tail>
-  bool check_var_types(HSQUIRRELVM vm, int idx, eastl::enable_if_t<(sizeof...(Tail) > 0), bool> = false)
+  bool check_var_types(HSQUIRRELVM vm, int idx, SQRAT_STD::enable_if_t<(sizeof...(Tail) > 0), bool> = false)
   {
     if (!check_var_types<Head>(vm, idx))
       return false;
@@ -710,7 +725,7 @@ namespace vargs
   template <typename... T>
   bool check_var_types(HSQUIRRELVM /*vm*/,
                        int /*idx*/,
-                       eastl::enable_if_t<(sizeof...(T) == 0), bool> = false)
+                       SQRAT_STD::enable_if_t<(sizeof...(T) == 0), bool> = false)
   {
     return true;
   }

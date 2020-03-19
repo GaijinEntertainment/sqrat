@@ -31,7 +31,6 @@
 
 #include <squirrel.h>
 #include <sqstdaux.h>
-#include <EASTL/string.h>
 #include "sqratTypes.h"
 #include "sqratUtil.h"
 #include "sqratGlobalMethods.h"
@@ -45,7 +44,9 @@ class SqOverloadName {
 public:
 
     static string Get(const SQChar* name, int args) {
-      string overloadName(string::CtorSprintf(), _SC("__overload_%s%d"), name, args);
+      int l = SQRAT_SPRINTF(nullptr, 0, _SC("__overload_%s%d"), name, args);
+      string overloadName(l+1, '\0');
+      SQRAT_SPRINTF(&overloadName[0], overloadName.size(), _SC("__overload_%s%d"), name, args);
       return overloadName;
     }
 };

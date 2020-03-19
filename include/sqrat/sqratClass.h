@@ -106,7 +106,7 @@ public:
             if (ClassType<C>::getStaticClassData().expired()) {
                 cd->staticData.reset(new StaticClassData<C, void>);
                 cd->staticData->copyFunc  = &A::Copy;
-                cd->staticData->className = eastl::move(className);
+                cd->staticData->className = SQRAT_STD::move(className);
                 cd->staticData->baseClass = NULL;
 
                 ClassType<C>::getStaticClassData() = cd->staticData;
@@ -415,7 +415,7 @@ protected:
 
     // Initialize the required data structure for the class
     void InitClass(ClassData<C>* cd) {
-        cd->instances.reset(new typename unordered_map<C*, HSQOBJECT>::type);
+        cd->instances.reset(new InstancesMap<C>);
 
         // push the class
         sq_pushobject(vm, cd->classObj);
@@ -643,7 +643,7 @@ public:
             if (ClassType<C>::getStaticClassData().expired()) {
                 cd->staticData.reset(new StaticClassData<C, B>);
                 cd->staticData->copyFunc  = &A::Copy;
-                cd->staticData->className = eastl::move(className);
+                cd->staticData->className = SQRAT_STD::move(className);
                 cd->staticData->baseClass = bd->staticData.get();
 
                 ClassType<C>::getStaticClassData() = cd->staticData;
@@ -666,7 +666,7 @@ public:
 protected:
 
     void InitDerivedClass(ClassData<C>* cd, ClassData<B>* bd) {
-        cd->instances.reset(new typename unordered_map<C*, HSQOBJECT>::type);
+        cd->instances.reset(new InstancesMap<C>);
 
         // push the class
         sq_pushobject(vm, cd->classObj);

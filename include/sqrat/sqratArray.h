@@ -291,7 +291,7 @@ struct Var<Array> {
         value = Array(obj, vm);
         SQObjectType value_type = sq_gettype(vm, idx);
         if (value_type != OT_ARRAY && value_type != OT_NULL) {
-          SQRAT_ASSERTF(0, FormatTypeError(vm, idx, _SC("array")).c_str());
+            SQRAT_ASSERTF(0, FormatTypeError(vm, idx, _SC("array")).c_str());
         }
     }
 

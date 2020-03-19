@@ -32,7 +32,6 @@
 
 #include <squirrel.h>
 #include "sqratTypes.h"
-#include <EASTL/functional.h>
 
 namespace Sqrat {
 

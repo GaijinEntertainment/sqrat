@@ -40,32 +40,80 @@
   #define SQRAT_ASSERT assert
   #define SQRAT_ASSERTF(cond, msg, ...) assert((cond) && (msg))
   #define SQRAT_VERIFY(cond) do { if (!(cond)) assert(#cond); } while(0)
-
 #endif
 
 #include <squirrel.h>
 #include <sqstdaux.h>
-#include <EASTL/tuple.h>
-#include <EASTL/string.h>
-#include <EASTL/hash_map.h>
-#include <EASTL/type_traits.h>
 
 #if (defined(_MSC_VER) && _MSC_VER >= 1900) || (__cplusplus >= 201402L) || (__cplusplus == 201300L)
 #else
   #error C++14 support required
 #endif
 
+#if defined(SQRAT_HAS_SKA_HASH_MAP)
+# include <ska_hash_map/flat_hash_map2.hpp>
+#endif
+
+#ifndef SQRAT_STD
+#define SQRAT_STD std
+#endif
+
+#if defined(SQRAT_HAS_EASTL)
+# include <EASTL/string.h>
+# include <EASTL/string_view.h>
+# include <EASTL/unordered_map.h>
+# include <EASTL/vector_map.h>
+# include <EASTL/shared_ptr.h>
 EA_DISABLE_ALL_VC_WARNINGS()
+#else
+# include <string>
+# include <unordered_map>
+# include <memory>
+# include <tuple>
+# include <type_traits>
+# if __cplusplus >= 201703L
+# include <string_view>
+# endif
+#endif
+
+#ifdef SQUNICODE
+# define SQRAT_SPRINTF wsprintf
+#else
+# define SQRAT_SPRINTF snprintf
+#endif
 
 namespace Sqrat {
 
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    /// Define an unordered map for Sqrat to use
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    template<class Key, class T>
-    struct unordered_map {
-        typedef eastl::hash_map<Key, T> type;
-    };
+#if defined(SQRAT_HAS_EASTL)
+  using string = eastl::basic_string<SQChar>;
+  using string_view = eastl::basic_string_view<SQChar>;
+  template <class T> using hash = eastl::hash<T>;
+  template <class T> using shared_ptr = eastl::shared_ptr<T>;
+  template <class T> using weak_ptr = eastl::weak_ptr<T>;
+
+#else
+  using string = std::basic_string<SQChar>;
+  template <class T> using hash = std::hash<T>;
+  template <class T> using shared_ptr = std::shared_ptr<T>;
+  template <class T> using weak_ptr = std::weak_ptr<T>;
+
+#if __cplusplus >= 201703L
+  using string_view = std::basic_string_view<SQChar>;
+#else
+  using string_view = string;
+#endif
+#endif //defined(SQRAT_HAS_EASTL)
+
+#if defined(SQRAT_HAS_SKA_HASH_MAP)
+  template <class K, class V, typename H = hash<K>>
+  using class_hash_map = ska::flat_hash_map<K, V, H>;
+#elif defined(SQRAT_HAS_EASTL)
+  template <class K, class V, typename H = hash<K>>
+  using class_hash_map = eastl::unordered_map<K, V, H>;
+#else
+  template <class K, class V, typename H = hash<K>>
+  using class_hash_map = std::unordered_map<K, V, H>;
+#endif
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Define an inline function to avoid MSVC's "conditional expression is constant" warning
@@ -84,39 +132,6 @@ void SQRAT_UNUSED(const T&) {}
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/// Defines a string that is definitely compatible with the version of Squirrel being used (normally this is std::string)
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-typedef eastl::basic_string<SQChar> string;
-
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/// Tells Sqrat whether Squirrel error handling should be used
-///
-/// \remarks
-/// If true, if a runtime error occurs during the execution of a call, the VM will invoke its error handler.
-///
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-class ErrorHandling {
-private:
-
-    static bool& errorHandling() {
-        static bool eh = true;
-        return eh;
-    }
-
-public:
-
-    static bool IsEnabled() {
-        return errorHandling();
-    }
-
-    static void Enable(bool enable) {
-        errorHandling() = enable;
-    }
-};
-
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Returns a string that has been formatted to give a nice type error message (for usage with Class::SquirrelFunc)
 ///
 /// \param vm           VM the error occurred with
@@ -127,7 +142,10 @@ public:
 ///
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 inline string FormatTypeError(HSQUIRRELVM vm, SQInteger idx, const SQChar *expectedType) {
-    string err(string::CtorSprintf{}, _SC("wrong type (%s expected)"), expectedType);
+    int l = SQRAT_SPRINTF(nullptr, 0, _SC("wrong type (%s expected)"), expectedType);
+    string err(l + 1, '\0');
+    SQRAT_SPRINTF(&err[0], err.size(), _SC("wrong type (%s expected)"), expectedType);
+
     if (SQ_SUCCEEDED(sq_typeof(vm, idx))) {
         const SQChar* actualType = _SC("n/a");
         sq_tostring(vm, -1);
@@ -169,8 +187,8 @@ namespace vargs {
   template<class... T>
   struct TailElem
   {
-    typedef eastl::tuple<T...> tuple;
-    typedef typename eastl::tuple_element<eastl::tuple_size<tuple>::value - 1, tuple>::type type;
+    typedef SQRAT_STD::tuple<T...> tuple;
+    typedef typename SQRAT_STD::tuple_element<SQRAT_STD::tuple_size<tuple>::value - 1, tuple>::type type;
   };
 
   template<class Head, class... T>
@@ -194,7 +212,7 @@ namespace vargs {
   template<class Head, class... Tail>
   constexpr TailElem_t<Head, Tail...> tail(Head&&, Tail&&... args)
   {
-    return tail(eastl::forward<Tail>(args)...);
+    return tail(SQRAT_STD::forward<Tail>(args)...);
   }
 
   template<class Arg>
@@ -214,56 +232,86 @@ namespace vargs {
 #pragma warning(disable: 4100)
 #endif
   template <class Func, class Tuple, size_t... Indexes>
-  auto apply_helper(Func pf, eastl::index_sequence<Indexes...>, Tuple &args)
+  auto apply_helper(Func pf, SQRAT_STD::index_sequence<Indexes...>, Tuple &args)
   {
-    return pf(eastl::get<Indexes>(args).value...);
+    return pf(SQRAT_STD::get<Indexes>(args).value...);
   }
 
   template <class Func, class Tuple>
   auto apply(Func pf, Tuple &&args)
   {
-    constexpr auto argsN = eastl::tuple_size<eastl::decay_t<Tuple>>::value;
-    return apply_helper(pf, eastl::make_index_sequence<argsN>(), args);
+    constexpr auto argsN = SQRAT_STD::tuple_size<SQRAT_STD::decay_t<Tuple>>::value;
+    return apply_helper(pf, SQRAT_STD::make_index_sequence<argsN>(), args);
   }
 
   template <class C, class Member, class Tuple, size_t... Indexes>
-  auto apply_member_helper(C *ptr, Member pf, eastl::index_sequence<Indexes...>,
+  auto apply_member_helper(C *ptr, Member pf, SQRAT_STD::index_sequence<Indexes...>,
                            Tuple &args)
   {
-    return (ptr->*pf)(eastl::get<Indexes>(args).value...);
+    return (ptr->*pf)(SQRAT_STD::get<Indexes>(args).value...);
   }
 
   template <class C, class Member, class Tuple>
   auto apply_member(C *ptr, Member pf, Tuple &&args)
   {
-    constexpr auto argsN = eastl::tuple_size<eastl::decay_t<Tuple>>::value;
-    return apply_member_helper(ptr, pf, eastl::make_index_sequence<argsN>(), args);
+    constexpr auto argsN = SQRAT_STD::tuple_size<SQRAT_STD::decay_t<Tuple>>::value;
+    return apply_member_helper(ptr, pf, SQRAT_STD::make_index_sequence<argsN>(), args);
   }
 #if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
 }
 
-// add meta-functions aliases that are missing in eastl
+// add meta-functions aliases that are missing in std
 template <typename T>
-using remove_pointer_t = typename eastl::remove_pointer<T>::type;
+using remove_pointer_t = typename SQRAT_STD::remove_pointer<T>::type;
 
 template <typename T>
-using remove_const_t = typename eastl::remove_const<T>::type;
+using remove_const_t = typename SQRAT_STD::remove_const<T>::type;
+
+#if __cplusplus < 201703L
+template <typename...>
+struct __or;
+
+template <>
+struct __or<> : SQRAT_STD::false_type
+{
+};
+template <typename B1>
+struct __or<B1> : B1
+{
+};
+template <typename B1, typename B2>
+struct __or<B1, B2> : SQRAT_STD::conditional<B1::value, B1, B2>::type
+{
+};
+
+template <typename B1, typename B2, typename B3, typename... Bn>
+struct __or<B1, B2, B3, Bn...> : SQRAT_STD::conditional<B1::value, B1, __or<B2, B3, Bn...>>::type
+{
+};
+
+template<typename... Tn>
+struct disjunction : __or<Tn...> {};
 
 struct void_type
 {
   using type = void;
 };
+#else
+template<typename ...Tn>
+using disjunction = SQRAT_STD::disjunction<Tn...>;
+#endif
 
-template<typename T>
-struct is_function :
-          eastl::disjunction<eastl::is_function<T>,
-                             eastl::is_function<remove_pointer_t<eastl::remove_reference_t<T>>>
-                             >
+template <typename T>
+struct is_function
+  : disjunction<SQRAT_STD::is_function<T>,
+                SQRAT_STD::is_function<SQRAT_STD::remove_pointer_t<SQRAT_STD::remove_reference_t<T>>>>
 {
 };
 
+template <bool B, typename T>
+using disable_if = SQRAT_STD::enable_if<!B, T>;
 
 template <typename T>
 struct member_function_signature
@@ -301,7 +349,7 @@ using member_function_signature_t = typename member_function_signature<T>::type;
 template<class T>
 struct get_class_callop_signature
 {
-  using type = member_function_signature_t<decltype(&eastl::remove_reference_t<T>::operator())>;
+  using type = member_function_signature_t<decltype(&SQRAT_STD::remove_reference_t<T>::operator())>;
 };
 
 template<class T>
@@ -342,11 +390,11 @@ using get_function_signature_t = typename get_function_signature<Func>::type;
 
 
 template<typename T>
-struct get_callable_function : eastl::conditional_t<eastl::is_member_function_pointer<T>::value,
+struct get_callable_function : SQRAT_STD::conditional_t<SQRAT_STD::is_member_function_pointer<T>::value,
                                                     member_function_signature<T>,
-                                                    eastl::conditional_t<is_function<T>::value,
+                                                    SQRAT_STD::conditional_t<is_function<T>::value,
                                                                           get_function_signature<remove_pointer_t<T>>,
-                                                                          eastl::conditional_t<eastl::is_class<T>::value,
+                                                                          SQRAT_STD::conditional_t<SQRAT_STD::is_class<T>::value,
                                                                                             get_class_callop_signature<T>,
                                                                                             void_type>
                                                                         >
@@ -403,7 +451,7 @@ struct has_call_operator
 
 template<typename T>
 struct is_callable :
-  eastl::conditional<eastl::is_class<T>::value,
+  SQRAT_STD::conditional<SQRAT_STD::is_class<T>::value,
                       has_call_operator<T>,
                       is_function<T>>::type
 {
@@ -414,6 +462,8 @@ constexpr int is_callable_v = is_callable<T>::value;
 
 }
 
+#if defined(SQRAT_HAS_EASTL)
 EA_RESTORE_ALL_VC_WARNINGS()
+#endif
 
 #endif

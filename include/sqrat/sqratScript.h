@@ -35,7 +35,6 @@
 
 #include "sqratObject.h"
 
-#include <EASTL/string_view.h>
 
 namespace Sqrat {
 
@@ -54,8 +53,8 @@ public:
     /// \param name   Optional string containing the script's name (for errors)
     ///
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    bool CompileString(const eastl::string_view &script, string &errMsg,
-                       const eastl::string_view &name = eastl::string_view())
+    bool CompileString(const string_view &script, string &errMsg,
+                       const string_view &name = string_view())
     {
         if(!sq_isnull(obj)) {
             sq_release(vm, &obj);
