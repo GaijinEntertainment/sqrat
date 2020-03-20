@@ -32,7 +32,6 @@
 #include <squirrel.h>
 #include <sqdirect.h>
 #include <string.h>
-#include <EASTL/type_traits.h>
 
 #include "sqratAllocator.h"
 #include "sqratTypes.h"
@@ -88,52 +87,52 @@ public:
     /// \tparam T       Type
     ///
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    template <class T, typename eastl::disable_if<eastl::is_arithmetic<T>::value, bool>::type = false>
+    template <class T, typename disable_if<SQRAT_STD::is_arithmetic<T>::value, bool>::type = false>
     Object(const T &t, HSQUIRRELVM v) : vm(v), release(true) {
-      Var<T>::push(vm, t);
-      SQRAT_VERIFY(SQ_SUCCEEDED(sq_getstackobj(vm, -1, &obj)));
-      sq_addref(vm, &obj);
-      sq_poptop(vm);
-    }
-
-    Object(const SQChar *str, HSQUIRRELVM v, SQInteger str_len = -1) : vm(v), release(true) {
-      if (str) {
-        sq_pushstring(vm, str, str_len);
+        Var<T>::push(vm, t);
         SQRAT_VERIFY(SQ_SUCCEEDED(sq_getstackobj(vm, -1, &obj)));
         sq_addref(vm, &obj);
         sq_poptop(vm);
-      }
-      else
-        sq_resetobject(&obj);
     }
 
-    template <class T, typename eastl::enable_if<(eastl::is_integral<T>::value && !eastl::is_same<T, bool>::value), bool>::type = false>
-    Object(T t, HSQUIRRELVM v) : vm(v), release(false) {
-      obj._type = OT_INTEGER;
-      obj._unVal.nInteger = (SQInteger)t;
+    Object(const SQChar *str, HSQUIRRELVM v, SQInteger str_len = -1) : vm(v), release(true) {
+        if (str) {
+            sq_pushstring(vm, str, str_len);
+            SQRAT_VERIFY(SQ_SUCCEEDED(sq_getstackobj(vm, -1, &obj)));
+            sq_addref(vm, &obj);
+            sq_poptop(vm);
+        }
+        else
+            sq_resetobject(&obj);
     }
 
-    template <class T, typename eastl::enable_if<eastl::is_floating_point<T>::value, bool>::type = false>
+    template <class T, typename SQRAT_STD::enable_if<(SQRAT_STD::is_integral<T>::value && !SQRAT_STD::is_same<T, bool>::value), bool>::type = false>
     Object(T t, HSQUIRRELVM v) : vm(v), release(false) {
-      obj._type = OT_FLOAT;
-      obj._unVal.fFloat = (SQFloat)t;
+        obj._type = OT_INTEGER;
+        obj._unVal.nInteger = (SQInteger)t;
     }
 
-    template <class T, typename eastl::enable_if<eastl::is_same<T, bool>::value, bool>::type = false>
+    template <class T, typename SQRAT_STD::enable_if<SQRAT_STD::is_floating_point<T>::value, bool>::type = false>
     Object(T t, HSQUIRRELVM v) : vm(v), release(false) {
-      obj._type = OT_BOOL;
-      obj._unVal.nInteger = t ? 1 : 0;
+        obj._type = OT_FLOAT;
+        obj._unVal.fFloat = (SQFloat)t;
+    }
+
+    template <class T, typename SQRAT_STD::enable_if<SQRAT_STD::is_same<T, bool>::value, bool>::type = false>
+    Object(T t, HSQUIRRELVM v) : vm(v), release(false) {
+        obj._type = OT_BOOL;
+        obj._unVal.nInteger = t ? 1 : 0;
     }
 
     virtual ~Object() {
-        if(release) {
+        if (release) {
             Release();
             release = false;
         }
     }
 
     Object& operator=(const Object& so) {
-        if(release) {
+        if (release) {
             Release();
         }
         vm = so.vm;
