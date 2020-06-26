@@ -174,15 +174,16 @@ public:
         for (size_t i = 0; i < args_count; ++i)
           sq_pushobject(vm, args[i]);
 
+        HSQUIRRELVM savedVm = vm; // vm can be nulled in sq_call()
         SQRESULT result = sq_call(vm, args_count+1, true, SQTrue);
         if (SQ_FAILED(result)) {
             ReportCallError();
-            sq_settop(vm, top);
+            sq_settop(savedVm, top);
             return false;
         }
 
-        ret = Var<R>(vm, -1).value;
-        sq_settop(vm, top);
+        ret = Var<R>(savedVm, -1).value;
+        sq_settop(savedVm, top);
         return true;
     }
 
@@ -195,11 +196,12 @@ public:
         for (size_t i = 0; i < args_count; ++i)
           sq_pushobject(vm, args[i]);
 
+        HSQUIRRELVM savedVm = vm; // vm can be nulled in sq_call()
         SQRESULT result = sq_call(vm, args_count + 1, false, SQTrue);
         if (SQ_FAILED(result))
             ReportCallError();
 
-        sq_settop(vm, top);
+        sq_settop(savedVm, top);
 
         return SQ_SUCCEEDED(result);
     }
@@ -215,7 +217,7 @@ public:
 
       PushArgsWithoutRet(args_and_ret...);
 
-     HSQUIRRELVM savedVm = vm; // vm can be nulled in sq_call()
+      HSQUIRRELVM savedVm = vm; // vm can be nulled in sq_call()
       SQRESULT result = sq_call(vm, nArgs + 1, true, SQTrue);
       if (SQ_FAILED(result)) {
           ReportCallError();
