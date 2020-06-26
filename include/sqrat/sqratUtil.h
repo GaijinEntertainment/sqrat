@@ -294,13 +294,13 @@ struct __or<B1, B2, B3, Bn...> : SQRAT_STD::conditional<B1::value, B1, __or<B2, 
 template<typename... Tn>
 struct disjunction : __or<Tn...> {};
 
-struct void_type
-{
-  using type = void;
-};
+template<typename... Ts> struct make_void { typedef void type; };
+template<typename... Ts> using void_t = typename make_void<Ts...>::type;
 #else
 template<typename ...Tn>
 using disjunction = SQRAT_STD::disjunction<Tn...>;
+template <typename ...Tn>
+using void_t = SQRAT_STD::void_t<Tn...>;
 #endif
 
 template <typename T>
@@ -396,7 +396,7 @@ struct get_callable_function : SQRAT_STD::conditional_t<SQRAT_STD::is_member_fun
                                                                           get_function_signature<remove_pointer_t<T>>,
                                                                           SQRAT_STD::conditional_t<SQRAT_STD::is_class<T>::value,
                                                                                             get_class_callop_signature<T>,
-                                                                                            void_type>
+                                                                                            void_t<T>>
                                                                         >
 
                                                     >
