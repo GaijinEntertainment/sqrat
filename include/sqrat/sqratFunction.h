@@ -215,11 +215,12 @@ public:
 
       PushArgsWithoutRet(args_and_ret...);
 
+     HSQUIRRELVM savedVm = vm; // vm can be nulled in sq_call()
       SQRESULT result = sq_call(vm, nArgs + 1, true, SQTrue);
       if (SQ_FAILED(result)) {
           ReportCallError();
 
-          sq_settop(vm, top);
+          sq_settop(savedVm, top);
           return false;
       }
 
@@ -227,8 +228,8 @@ public:
                           vargs::TailElem_t<ArgsAndRet...>>::type R;
 
       R& ret = vargs::tail(SQRAT_STD::forward<ArgsAndRet>(args_and_ret)...);
-      ret = Var<R>(vm, -1).value;
-      sq_settop(vm, top);
+      ret = Var<R>(savedVm, -1).value;
+      sq_settop(savedVm, top);
       return true;
     }
 
