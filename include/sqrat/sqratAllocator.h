@@ -32,9 +32,6 @@
 #include <squirrel.h>
 #include <sqstdaux.h>
 #include <string.h>
-#include <utility>
-#include <type_traits>
-#include <memory>
 
 #include "sqratObject.h"
 #include "sqratTypes.h"

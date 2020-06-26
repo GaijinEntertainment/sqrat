@@ -216,13 +216,13 @@ namespace vargs {
   }
 
   template<class Arg>
-  constexpr Arg head(Arg&& arg)
+  constexpr Arg head(Arg&& )
   {
     return head;
   }
 
   template<class Head, class... Tail>
-  constexpr Head head(Head&& head, Tail&&... args)
+  constexpr Head head(Head&& head, Tail&&... )
   {
     return head;
   }
