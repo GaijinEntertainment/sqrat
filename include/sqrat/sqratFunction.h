@@ -215,7 +215,7 @@ public:
       sq_pushobject(vm, obj);
       sq_pushobject(vm, env);
 
-      PushArgsWithoutRet(args_and_ret...);
+      PushArgsWithoutRet(SQRAT_STD::forward<ArgsAndRet>(args_and_ret)...);
 
       HSQUIRRELVM savedVm = vm; // vm can be nulled in sq_call()
       SQRESULT result = sq_call(vm, nArgs + 1, true, SQTrue);
@@ -238,6 +238,7 @@ public:
     template <typename... Args>
     bool Execute(Args const&... args) const {
         static constexpr size_t nArgs = sizeof...(Args);
+		
         SQInteger top = sq_gettop(vm);
 
         sq_pushobject(vm, obj);
