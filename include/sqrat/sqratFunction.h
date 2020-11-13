@@ -238,7 +238,6 @@ public:
     template <typename... Args>
     bool Execute(Args const&... args) const {
         static constexpr size_t nArgs = sizeof...(Args);
-		
         SQInteger top = sq_gettop(vm);
 
         sq_pushobject(vm, obj);
