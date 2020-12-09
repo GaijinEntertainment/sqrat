@@ -71,8 +71,10 @@ public:
     }
 
     Object(Object && so) : vm(so.vm), obj(so.obj), release(so.release) {
-      sq_resetobject(&so.obj);
+      so.release = false;
     }
+
+    Object(const Object &&)=delete;
 
     Object(HSQOBJECT o, HSQUIRRELVM v) : vm(v), obj(o), release(true) {
         sq_addref(vm, &obj);
@@ -132,24 +134,28 @@ public:
     }
 
     Object& operator=(const Object& so) {
-        if (release) {
+        if (&so != this)
+        {
+          if (release)
             Release();
+          vm = so.vm;
+          obj = so.obj;
+          release = so.release;
+          sq_addref(vm, &obj);
         }
-        vm = so.vm;
-        obj = so.obj;
-        release = so.release;
-        sq_addref(vm, &GetObject());
         return *this;
     }
 
     Object& operator=(Object && so) {
-        if(release) {
+        if (&so != this)
+        {
+          if (release)
             Release();
+          vm = so.vm;
+          obj = so.obj;
+          release = so.release;
+          so.release = false;
         }
-        vm = so.vm;
-        obj = so.obj;
-        release = so.release;
-        sq_resetobject(&so.obj);
         return *this;
     }
 

@@ -61,12 +61,12 @@ public:
         sq_addref(vm, &obj);
     }
 
-    Function(Function&& sf) : Function()
+    Function(Function&& sf) : vm(sf.vm), env(sf.env), obj(sf.obj)
     {
-      SQRAT_STD::swap(vm, sf.vm);
-      SQRAT_STD::swap(env, sf.env);
-      SQRAT_STD::swap(obj, sf.obj);
+      sf.vm = nullptr; // don't try release in moved from state
     }
+
+    Function(const Function&&)=delete;
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     /// Constructs a Function from a slot in an Object
@@ -107,21 +107,28 @@ public:
     }
 
     Function& operator=(const Function& sf) {
+      if (&sf != this)
+      {
         Release();
         vm = sf.vm;
         env = sf.env;
         obj = sf.obj;
         sq_addref(vm, &env);
         sq_addref(vm, &obj);
+      }
         return *this;
     }
 
     Function& operator=(Function&& sf)
     {
-      Release();
-      SQRAT_STD::swap(vm, sf.vm);
-      SQRAT_STD::swap(env, sf.env);
-      SQRAT_STD::swap(obj, sf.obj);
+      if (&sf != this)
+      {
+        Release();
+        vm = sf.vm;
+        env = sf.env;
+        obj = sf.obj;
+        sf.vm = nullptr; // don't try release in moved from state
+      }
       return *this;
     }
 
