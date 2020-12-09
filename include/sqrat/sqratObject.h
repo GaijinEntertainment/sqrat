@@ -110,18 +110,21 @@ public:
 
     template <class T, typename SQRAT_STD::enable_if<(SQRAT_STD::is_integral<T>::value && !SQRAT_STD::is_same<T, bool>::value), bool>::type = false>
     Object(T t, HSQUIRRELVM v) : vm(v), release(false) {
+        sq_resetobject(&obj);
         obj._type = OT_INTEGER;
         obj._unVal.nInteger = (SQInteger)t;
     }
 
     template <class T, typename SQRAT_STD::enable_if<SQRAT_STD::is_floating_point<T>::value, bool>::type = false>
     Object(T t, HSQUIRRELVM v) : vm(v), release(false) {
+        sq_resetobject(&obj);
         obj._type = OT_FLOAT;
         obj._unVal.fFloat = (SQFloat)t;
     }
 
     template <class T, typename SQRAT_STD::enable_if<SQRAT_STD::is_same<T, bool>::value, bool>::type = false>
     Object(T t, HSQUIRRELVM v) : vm(v), release(false) {
+        sq_resetobject(&obj);
         obj._type = OT_BOOL;
         obj._unVal.nInteger = t ? 1 : 0;
     }
