@@ -331,58 +331,8 @@ public:
         return ret;
     }
 
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    /// Iterator for going over the slots in the object using Object::Next
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    struct iterator
-    {
-        friend class Object;
-
-        iterator()
-        {
-            Index = 0;
-            sq_resetobject(&Key);
-            sq_resetobject(&Value);
-            Key._type = OT_NULL;
-            Value._type = OT_NULL;
-        }
-
-        const SQChar* getName() { return sq_objtostring(&Key); }
-        HSQOBJECT getKey() { return Key; }
-        HSQOBJECT getValue() { return Value; }
-    private:
-
-        HSQOBJECT Key;
-        HSQOBJECT Value;
-        SQInteger Index;
-    };
-
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    /// Used to go through all the slots in an Object (same limitations as sq_next)
-    ///
-    /// \param iter An iterator being used for going through the slots
-    ///
-    /// \return Whether there is a next slot
-    ///
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    bool Next(iterator& iter) const
-    {
-        sq_pushobject(vm,obj);
-        sq_pushinteger(vm,iter.Index);
-        if(SQ_SUCCEEDED(sq_next(vm,-2)))
-        {
-            SQRAT_VERIFY(SQ_SUCCEEDED(sq_getstackobj(vm,-1,&iter.Value)));
-            SQRAT_VERIFY(SQ_SUCCEEDED(sq_getstackobj(vm,-2,&iter.Key)));
-            sq_getinteger(vm,-3,&iter.Index);
-            sq_pop(vm,4);
-            return true;
-        }
-        else
-        {
-            sq_pop(vm,2);
-            return false;
-        }
-    }
+    struct iterator;
+    bool Next(iterator& iter) const;
 
 protected:
     template<class Func>
@@ -525,6 +475,7 @@ inline void Object::BindValue<int>(const SQChar* name, const int & val, bool sta
     sq_pop(vm,1); // pop table
 }
 
+
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Used to get and push Object instances to and from the stack as references (Object is always a reference)
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -556,6 +507,49 @@ struct Var<Object&> : Var<Object> {Var(HSQUIRRELVM vm, SQInteger idx) : Var<Obje
 
 template<>
 struct Var<const Object&> : Var<Object> {Var(HSQUIRRELVM vm, SQInteger idx) : Var<Object>(vm, idx) {}};
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/// Iterator for going over the slots in the object using Object::Next
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+struct Object::iterator {
+    friend class Object;
+
+    const SQChar* getName() {
+        HSQOBJECT hKey = key.GetObject();
+        return sq_objtostring(&hKey);
+    }
+
+    HSQOBJECT getKey() { return key.GetObject(); }
+    HSQOBJECT getValue() { return value.GetObject(); }
+
+private:
+    Object    index, key, value;
+};
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/// Used to go through all the slots in an Object (same limitations as sq_next)
+/// \param iter An iterator being used for going through the slots
+/// \return Whether there is a next slot
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+inline bool Object::Next(iterator& iter) const {
+    sq_pushobject(vm, obj);
+    sq_pushobject(vm, iter.index.GetObject());
+
+    if (SQ_SUCCEEDED(sq_next(vm,-2))) {
+        iter.index = Var<Object>(vm, -3).value;
+        iter.key   = Var<Object>(vm, -2).value;
+        iter.value = Var<Object>(vm, -1).value;
+
+        sq_pop(vm, 4);
+        return true;
+    }
+    else {
+        sq_pop(vm, 2);
+        return false;
+    }
+}
 
 }
 
