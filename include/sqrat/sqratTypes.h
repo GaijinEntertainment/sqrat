@@ -230,32 +230,12 @@ struct Var<T*, SQRAT_STD::enable_if_t<!is_callable_v<T*>>> {
 };
 
 
-/// Used to get (as copies) and push (as references) class instances to and from the stack as a std::shared_ptr
+/// Used to get (as copies) and push (as references) class instances to and from the stack as a shared_ptr
 template<class T> void PushVarR(HSQUIRRELVM vm, T& value);
 template<class T>
-struct Var<std::shared_ptr<T> > {
+struct Var<SQRAT_STD::shared_ptr<T> > {
 
-    std::shared_ptr<T> value; ///< The actual value of get operations
-
-    /// Attempts to get the value off the stack at idx as the given type
-    Var(HSQUIRRELVM vm, SQInteger idx) {
-        if (sq_gettype(vm, idx) != OT_NULL) {
-            Var<T> instance(vm, idx);
-            value.reset(new T(instance.value));
-        }
-    }
-
-    /// Called by Sqrat::PushVar to put a class object on the stack
-    static void push(HSQUIRRELVM vm, const std::shared_ptr<T>& value) {
-        PushVarR(vm, *value);
-    }
-};
-
-#if defined(SQRAT_HAS_EASTL)
-template<class T>
-struct Var<eastl::shared_ptr<T> > {
-
-    eastl::shared_ptr<T> value; ///< The actual value of get operations
+    SQRAT_STD::shared_ptr<T> value; ///< The actual value of get operations
 
     /// Attempts to get the value off the stack at idx as the given type
     Var(HSQUIRRELVM vm, SQInteger idx) {
@@ -266,11 +246,11 @@ struct Var<eastl::shared_ptr<T> > {
     }
 
     /// Called by Sqrat::PushVar to put a class object on the stack
-    static void push(HSQUIRRELVM vm, const eastl::shared_ptr<T>& value) {
+    static void push(HSQUIRRELVM vm, const SQRAT_STD::shared_ptr<T>& value) {
         PushVarR(vm, *value);
     }
 };
-#endif
+
 
 // Integer types
 #define SQRAT_INTEGER( type ) \

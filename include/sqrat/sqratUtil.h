@@ -176,6 +176,7 @@ inline string LastErrorString(HSQUIRRELVM vm) {
 template<class Obj>
 SQInteger ImplaceFreeReleaseHook(SQUserPointer p, SQInteger)
 {
+  SQRAT_UNUSED(p); // for Obj without destructor
   static_cast<Obj*>(p)->~Obj();
   return 1;
 }
