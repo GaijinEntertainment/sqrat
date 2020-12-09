@@ -268,15 +268,15 @@ public:
     }
 
 
-    static bool IsClassInstance(HSQUIRRELVM vm, SQInteger idx, bool nullAllowed = false) {
-        SQObjectType type = sq_gettype(vm, idx);
+    static bool IsClassInstance(const HSQOBJECT &ho, bool nullAllowed = false) {
+        SQObjectType type = sq_type(ho);
         if (nullAllowed && type == OT_NULL)
             return true;
         if (type != OT_INSTANCE)
             return false;
         AbstractStaticClassData* classType = getStaticClassData().lock().get();
         AbstractStaticClassData* actualType = nullptr;
-        if (SQ_FAILED(sq_gettypetag(vm, idx, (SQUserPointer*)&actualType)))
+        if (SQ_FAILED(sq_getobjtypetag(&ho, (SQUserPointer*)&actualType)))
             return false;
         for (; actualType; actualType=actualType->baseClass) {
             if (actualType == classType) {
@@ -284,6 +284,13 @@ public:
             }
         }
         return false;
+    }
+
+
+    static bool IsClassInstance(HSQUIRRELVM vm, SQInteger idx, bool nullAllowed = false) {
+        HSQOBJECT ho;
+        sq_getstackobj(vm, idx, &ho);
+        return IsClassInstance(ho, nullAllowed);
     }
 
     static SQInteger ToString(HSQUIRRELVM vm) {
