@@ -176,7 +176,7 @@ public:
         return getStaticClassData().lock()->baseClass;
     }
 
-    static inline string& ClassName() {
+    static inline const string& ClassName() {
         SQRAT_ASSERT(getStaticClassData().expired() == false); // fails because called before a Sqrat::Class for this type exists
         return getStaticClassData().lock()->className;
     }

@@ -140,7 +140,7 @@ struct Var {
             SQRAT_ASSERTF(0, "Class/typename was not bound");
     }
 
-    static const SQChar * getVarTypeName() { return _SC("native instance"); }
+    static const SQChar * getVarTypeName() { return ClassT::ClassName().c_str(); }
 
     static bool check_type(HSQUIRRELVM vm, SQInteger idx) {
         return ClassT::IsClassInstance(vm, idx);
@@ -196,7 +196,7 @@ struct Var<T&> {
             SQRAT_ASSERTF(0, "Class/typename was not bound");
     }
 
-    static const SQChar * getVarTypeName() { return _SC("native instance ref"); }
+    static const SQChar * getVarTypeName() { return ClassT::ClassName().c_str(); }
 
     static bool check_type(HSQUIRRELVM vm, SQInteger idx) {
         return ClassT::IsClassInstance(vm, idx);
@@ -222,7 +222,7 @@ struct Var<T*, SQRAT_STD::enable_if_t<!is_callable_v<T*>>> {
           sq_pushinteger(vm, reinterpret_cast<SQInteger>(value));
     }
 
-    static const SQChar * getVarTypeName() { return _SC("native instance ptr"); }
+    static const SQChar * getVarTypeName() { return ClassT::ClassName().c_str(); }
 
     static bool check_type(HSQUIRRELVM vm, SQInteger idx) {
         return ClassT::IsClassInstance(vm, idx);
