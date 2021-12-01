@@ -172,7 +172,7 @@ public:
     }
 
     template<class R>
-    bool EvaluateDynArgs(SQObject const* args, size_t args_count, R& ret) const {
+    bool EvaluateDynArgs(HSQOBJECT const* args, size_t args_count, R& ret) const {
         SQInteger top = sq_gettop(vm);
 
         sq_pushobject(vm, obj);
@@ -194,7 +194,7 @@ public:
         return true;
     }
 
-    bool ExecuteDynArgs(SQObject const* args, size_t args_count) const {
+    bool ExecuteDynArgs(HSQOBJECT const* args, size_t args_count) const {
         SQInteger top = sq_gettop(vm);
 
         sq_pushobject(vm, obj);
