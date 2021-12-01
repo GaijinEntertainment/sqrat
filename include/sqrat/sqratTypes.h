@@ -38,9 +38,9 @@ namespace Sqrat {
 
 
 template <typename T>
-struct popAsInt
+struct getAsInt
 {
-    static bool pop(HSQUIRRELVM vm, SQInteger idx, T &value)
+    static bool getFromStack(HSQUIRRELVM vm, SQInteger idx, T &value)
     {
         static_assert(SQRAT_STD::is_convertible<T, SQInteger>::value, "type is not convertible to int");
 
@@ -75,9 +75,9 @@ struct popAsInt
 
 
 template <typename T>
-struct popAsFloat
+struct getAsFloat
 {
-    static bool pop(HSQUIRRELVM vm, SQInteger idx, T& value)
+    static bool getFromStack(HSQUIRRELVM vm, SQInteger idx, T& value)
     {
         static_assert(SQRAT_STD::is_convertible<T, float>::value, "type is not convertible to float");
 
@@ -258,7 +258,7 @@ struct Var<SQRAT_STD::shared_ptr<T> > {
  struct Var<type> { \
      type value; \
      Var(HSQUIRRELVM vm, SQInteger idx) { \
-         popAsInt<type>::pop(vm, idx, value); \
+         getAsInt<type>::getFromStack(vm, idx, value); \
      } \
      static void push(HSQUIRRELVM vm, type value) { \
          sq_pushinteger(vm, static_cast<SQInteger>(value)); \
@@ -271,7 +271,7 @@ struct Var<SQRAT_STD::shared_ptr<T> > {
  struct Var<type&> { \
      type value; \
      Var(HSQUIRRELVM vm, SQInteger idx) { \
-         popAsInt<type>::pop(vm, idx, value); \
+         getAsInt<type>::getFromStack(vm, idx, value); \
      } \
      static void push(HSQUIRRELVM vm, type& value) { \
          sq_pushinteger(vm, static_cast<SQInteger>(value)); \
@@ -284,7 +284,7 @@ struct Var<SQRAT_STD::shared_ptr<T> > {
  struct Var<const type&> { \
      type value; \
      Var(HSQUIRRELVM vm, SQInteger idx) { \
-         popAsInt<type>::pop(vm, idx, value); \
+         getAsInt<type>::getFromStack(vm, idx, value); \
      } \
      static void push(HSQUIRRELVM vm, type value) { \
          sq_pushinteger(vm, static_cast<SQInteger>(value)); \
@@ -317,7 +317,7 @@ SQRAT_INTEGER(signed __int64)
  struct Var<type> { \
      type value; \
      Var(HSQUIRRELVM vm, SQInteger idx) { \
-         popAsFloat<type>::pop(vm, idx, value); \
+         getAsFloat<type>::getFromStack(vm, idx, value); \
      } \
      static void push(HSQUIRRELVM vm, const type& value) { \
          sq_pushfloat(vm, static_cast<SQFloat>(value)); \
@@ -330,7 +330,7 @@ SQRAT_INTEGER(signed __int64)
  struct Var<const type&> { \
      type value; \
      Var(HSQUIRRELVM vm, SQInteger idx) { \
-         popAsFloat<type>::pop(vm, idx, value); \
+         getAsFloat<type>::getFromStack(vm, idx, value); \
      } \
      static void push(HSQUIRRELVM vm, const type& value) { \
          sq_pushfloat(vm, static_cast<SQFloat>(value)); \
