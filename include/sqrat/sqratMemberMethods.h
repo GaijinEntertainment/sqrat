@@ -55,6 +55,8 @@ struct SqMemberThunkGen<C, MemberFunc, R(A...)>
     sq_getuserdata(vm, -1, (SQUserPointer *)&methodPtr, NULL);
 
     C *ptr = Var<C *>(vm, 1).value;
+    if (!ptr)
+      return sq_throwerror(vm, FormatTypeError(vm, 1, ClassType<C>::ClassName().c_str()).c_str());
     auto vars = vargs::make_vars<A...>(vm, 2);
     R ret = vargs::apply_member(ptr, *methodPtr, vars);
     PushVar(vm, ret);
@@ -78,6 +80,8 @@ struct SqMemberThunkGen<C, MemberFunc, void(A...)>
     sq_getuserdata(vm, -1, (SQUserPointer *)&methodPtr, NULL);
 
     C *ptr = Var<C *>(vm, 1).value;
+    if (!ptr)
+      return sq_throwerror(vm, FormatTypeError(vm, 1, ClassType<C>::ClassName().c_str()).c_str());
     auto vars = vargs::make_vars<A...>(vm, 2);
     vargs::apply_member(ptr, *methodPtr, vars);
     return 0;
@@ -102,6 +106,8 @@ SQFUNCTION SqMemberFunc()
 template <class C, class V>
 inline SQInteger sqDefaultGet(HSQUIRRELVM vm) {
     C* ptr = Var<C*>(vm, 1).value;
+    if (!ptr)
+      return sq_throwerror(vm, FormatTypeError(vm, 1, ClassType<C>::ClassName().c_str()).c_str());
 
     typedef V C::*M;
     M* memberPtr = NULL;
@@ -149,6 +155,8 @@ inline SQInteger sqVarGet(HSQUIRRELVM vm) {
 template <class C, class V>
 inline SQInteger sqDefaultSet(HSQUIRRELVM vm) {
     C* ptr = Var<C*>(vm, 1).value;
+    if (!ptr)
+      return sq_throwerror(vm, FormatTypeError(vm, 1, ClassType<C>::ClassName().c_str()).c_str());
 
     typedef V C::*M;
     M* memberPtr = NULL;
