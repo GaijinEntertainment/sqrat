@@ -39,24 +39,57 @@ namespace Sqrat
 // The copy function for a class
 typedef SQInteger (*COPYFUNC)(HSQUIRRELVM, SQInteger, const void*);
 
+struct AbstractStaticClassData;
+
+// Lookup static class data by type_info rather than a template because C++ cannot export generic templates
+struct IntPtrHash { size_t operator()(const void *p) const { return uintptr_t(p) >> 2; } };
+template <typename T = void> // dummy template for static var (in-function static generates ineffective, useless for us, thread-safe code)
+class _ClassType_helper
+{
+public:
+    static class_hash_map<const void*, weak_ptr<AbstractStaticClassData>, IntPtrHash> data;
+    static weak_ptr<AbstractStaticClassData>& _getStaticClassData(const void* type) { return data[type]; }
+    static SQRAT_STD::unordered_set<AbstractStaticClassData*> all_classes;
+};
+template<typename T>
+class_hash_map<const void*, weak_ptr<AbstractStaticClassData>, IntPtrHash> _ClassType_helper<T>::data;
+
+template<typename T>
+SQRAT_STD::unordered_set<AbstractStaticClassData*> _ClassType_helper<T>::all_classes;
+
+
+
 // Every Squirrel class instance made by Sqrat has its type tag set to a AbstractStaticClassData object that is unique per C++ class
 struct AbstractStaticClassData {
-    AbstractStaticClassData() {}
-    virtual ~AbstractStaticClassData() {}
+    AbstractStaticClassData() {
+        _ClassType_helper<>::all_classes.insert(this);
+    }
+    virtual ~AbstractStaticClassData() {
+        _ClassType_helper<>::all_classes.erase(this);
+    }
     virtual SQUserPointer Cast(SQUserPointer ptr, SQUserPointer classType) = 0;
     virtual bool PushInstance(HSQUIRRELVM vm, void *ptr) = 0;
+
+    static bool isValidSqratTypeTag(SQUserPointer tag) {
+        return isValidSqratClass(reinterpret_cast<AbstractStaticClassData *>(tag));
+    }
+
+    static bool isValidSqratClass(AbstractStaticClassData *asd) {
+        return _ClassType_helper<>::all_classes.find(asd) != _ClassType_helper<>::all_classes.end();
+    }
 
     static AbstractStaticClassData* FromObject(const HSQOBJECT *obj) {
         AbstractStaticClassData* actualType = nullptr;
         if (SQ_FAILED(sq_getobjtypetag(obj, (SQUserPointer*)&actualType)))
           return nullptr;
-        return actualType;
+        return isValidSqratClass(actualType) ? actualType : nullptr;
     }
 
     AbstractStaticClassData* baseClass;
     string                   className;
     COPYFUNC                 copyFunc;
 };
+
 
 // StaticClassData keeps track of the nearest base class B and the class associated with itself C in order to cast C++ pointers to the right base class
 template<class C, class B>
@@ -89,17 +122,6 @@ struct ClassData {
 
 template<class C> int ClassData<C>::type_id_helper = 0;
 
-// Lookup static class data by type_info rather than a template because C++ cannot export generic templates
-struct IntPtrHash { size_t operator()(const void *p) const { return uintptr_t(p) >> 2; } };
-template <typename T = void> // dummy template for static var (in-function static generates ineffective, useless for us, thread-safe code)
-class _ClassType_helper
-{
-public:
-    static class_hash_map<const void*, weak_ptr<AbstractStaticClassData>, IntPtrHash> data;
-    static weak_ptr<AbstractStaticClassData>& _getStaticClassData(const void* type) { return data[type]; }
-};
-template<typename T>
-class_hash_map<const void*, weak_ptr<AbstractStaticClassData>, IntPtrHash> _ClassType_helper<T>::data;
 
 struct ClassesRegistryTable {
     static SQUserPointer slotKey() {
@@ -169,7 +191,7 @@ public:
         AbstractStaticClassData* actualType;
         if (SQ_FAILED(sq_getobjtypetag(obj, (SQUserPointer*)&actualType)))
             return false;
-        if (!actualType)
+        if (!actualType || !AbstractStaticClassData::isValidSqratClass(actualType))
             return false;
         AbstractStaticClassData* thisClass = getStaticClassData().lock().get();
         for (AbstractStaticClassData *cls = actualType; cls; cls = cls->baseClass)
@@ -277,6 +299,8 @@ public:
         AbstractStaticClassData* classType = getStaticClassData().lock().get();
         AbstractStaticClassData* actualType = nullptr;
         if (SQ_FAILED(sq_getobjtypetag(&ho, (SQUserPointer*)&actualType)))
+            return false;
+        if (!AbstractStaticClassData::isValidSqratClass(actualType))
             return false;
         for (; actualType; actualType=actualType->baseClass) {
             if (actualType == classType) {

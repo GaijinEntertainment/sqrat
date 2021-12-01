@@ -62,12 +62,14 @@
 # include <EASTL/string.h>
 # include <EASTL/string_view.h>
 # include <EASTL/unordered_map.h>
+# include <EASTL/unordered_set.h>
 # include <EASTL/vector_map.h>
 # include <EASTL/shared_ptr.h>
 EA_DISABLE_ALL_VC_WARNINGS()
 #else
 # include <string>
 # include <unordered_map>
+# include <unordered_set>
 # include <memory>
 # include <tuple>
 # include <type_traits>
