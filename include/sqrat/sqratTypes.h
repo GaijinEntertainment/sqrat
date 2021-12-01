@@ -710,6 +710,15 @@ namespace vargs
     return true;
   }
 }
+
+
+// utility for checking types of SquirrelFunc arguments
+template <typename... Args>
+bool check_signature(HSQUIRRELVM vm, SQInteger start_stack_pos=1) {
+    return vargs::check_var_types<Args...>(vm, start_stack_pos);
+}
+
+
 }
 
 #endif
