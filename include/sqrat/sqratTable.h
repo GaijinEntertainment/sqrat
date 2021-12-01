@@ -245,6 +245,7 @@ public:
 class Table : public TableBase {
 public:
     Table(HSQUIRRELVM v) : TableBase(v) {
+        SQRAT_ASSERT(v);
         sq_newtable(vm);
         SQRAT_VERIFY(SQ_SUCCEEDED(sq_getstackobj(vm,-1,&obj)));
         sq_addref(vm, &obj);

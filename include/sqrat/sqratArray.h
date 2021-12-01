@@ -260,6 +260,7 @@ public:
     }
 
     Array(HSQUIRRELVM v, const SQInteger size = 0) : ArrayBase(v) {
+        SQRAT_ASSERT(v);
         sq_newarray(vm, size);
         SQRAT_VERIFY(SQ_SUCCEEDED(sq_getstackobj(vm,-1,&obj)));
         sq_addref(vm, &obj);
