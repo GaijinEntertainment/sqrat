@@ -219,7 +219,7 @@ struct Var<T*, SQRAT_STD::enable_if_t<!is_callable_v<T*>>> {
         if (ClassT::hasClassData(vm))
           ClassT::PushInstance(vm, const_cast<remove_const_t<T>*>(value));
         else
-          sq_pushinteger(vm, reinterpret_cast<SQInteger>(value));
+          SQRAT_ASSERTF(0, "Class/typename was not bound");
     }
 
     static const SQChar * getVarTypeName() { return ClassT::ClassName().c_str(); }
