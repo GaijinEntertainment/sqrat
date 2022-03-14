@@ -54,29 +54,28 @@ protected:
 
     HSQUIRRELVM vm;
     HSQOBJECT obj;
-    bool release;
 
 public:
 
-    Object(HSQUIRRELVM v, bool releaseOnDestroy = true) : vm(v), release(releaseOnDestroy) {
+    Object(HSQUIRRELVM v) : vm(v){
         sq_resetobject(&obj);
     }
 
-    Object() : vm(0), release(true) {
+    Object() : vm(0) {
         sq_resetobject(&obj);
     }
 
-    Object(const Object& so) : vm(so.vm), obj(so.obj), release(so.release) {
+    Object(const Object& so) : vm(so.vm), obj(so.obj) {
         sq_addref(vm, &obj);
     }
 
-    Object(Object && so) : vm(so.vm), obj(so.obj), release(so.release) {
-      so.release = false;
+    Object(Object && so) : vm(so.vm), obj(so.obj) {
+        sq_resetobject(&so.obj);
     }
 
     Object(const Object &&)=delete;
 
-    Object(HSQOBJECT o, HSQUIRRELVM v) : vm(v), obj(o), release(true) {
+    Object(HSQOBJECT o, HSQUIRRELVM v) : vm(v), obj(o) {
         sq_addref(vm, &obj);
     }
 
@@ -90,14 +89,14 @@ public:
     ///
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     template <class T, typename disable_if<SQRAT_STD::is_arithmetic<T>::value, bool>::type = false>
-    Object(const T &t, HSQUIRRELVM v) : vm(v), release(true) {
+    Object(const T &t, HSQUIRRELVM v) : vm(v) {
         Var<T>::push(vm, t);
         SQRAT_VERIFY(SQ_SUCCEEDED(sq_getstackobj(vm, -1, &obj)));
         sq_addref(vm, &obj);
         sq_poptop(vm);
     }
 
-    Object(const SQChar *str, HSQUIRRELVM v, SQInteger str_len = -1) : vm(v), release(true) {
+    Object(const SQChar *str, HSQUIRRELVM v, SQInteger str_len = -1) : vm(v) {
         if (str) {
             sq_pushstring(vm, str, str_len);
             SQRAT_VERIFY(SQ_SUCCEEDED(sq_getstackobj(vm, -1, &obj)));
@@ -109,41 +108,36 @@ public:
     }
 
     template <class T, typename SQRAT_STD::enable_if<(SQRAT_STD::is_integral<T>::value && !SQRAT_STD::is_same<T, bool>::value), bool>::type = false>
-    Object(T t, HSQUIRRELVM v) : vm(v), release(false) {
+    Object(T t, HSQUIRRELVM v) : vm(v) {
         sq_resetobject(&obj);
         obj._type = OT_INTEGER;
         obj._unVal.nInteger = (SQInteger)t;
     }
 
     template <class T, typename SQRAT_STD::enable_if<SQRAT_STD::is_floating_point<T>::value, bool>::type = false>
-    Object(T t, HSQUIRRELVM v) : vm(v), release(false) {
+    Object(T t, HSQUIRRELVM v) : vm(v) {
         sq_resetobject(&obj);
         obj._type = OT_FLOAT;
         obj._unVal.fFloat = (SQFloat)t;
     }
 
     template <class T, typename SQRAT_STD::enable_if<SQRAT_STD::is_same<T, bool>::value, bool>::type = false>
-    Object(T t, HSQUIRRELVM v) : vm(v), release(false) {
+    Object(T t, HSQUIRRELVM v) : vm(v) {
         sq_resetobject(&obj);
         obj._type = OT_BOOL;
         obj._unVal.nInteger = t ? 1 : 0;
     }
 
     virtual ~Object() {
-        if (release) {
-            Release();
-            release = false;
-        }
+        Release();
     }
 
     Object& operator=(const Object& so) {
         if (&so != this)
         {
-          if (release)
-            Release();
+          Release();
           vm = so.vm;
           obj = so.obj;
-          release = so.release;
           sq_addref(vm, &obj);
         }
         return *this;
@@ -152,12 +146,10 @@ public:
     Object& operator=(Object && so) {
         if (&so != this)
         {
-          if (release)
-            Release();
+          Release();
           vm = so.vm;
           obj = so.obj;
-          release = so.release;
-          so.release = false;
+          sq_resetobject(&so.obj);
         }
         return *this;
     }

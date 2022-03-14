@@ -43,7 +43,7 @@ public:
     TableBase() {
     }
 
-    TableBase(HSQUIRRELVM v) : Object(v, true) {
+    TableBase(HSQUIRRELVM v) : Object(v) {
     }
 
     TableBase(const Object& obj) : Object(obj) {

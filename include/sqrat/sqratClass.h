@@ -84,7 +84,7 @@ public:
     /// \param createClass Should class type data be created? (almost always should be true - don't worry about it)
     ///
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    Class(HSQUIRRELVM v, string && className, bool createClass = true) : Object(v, false) {
+    Class(HSQUIRRELVM v, string && className, bool createClass = true) : Object(v) {
         if (createClass && !ClassType<C>::hasClassData(v)) {
             sq_pushregistrytable(v);
             sq_pushuserpointer(v, ClassesRegistryTable::slotKey());

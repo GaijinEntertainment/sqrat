@@ -43,7 +43,7 @@ public:
     ArrayBase() {
     }
 
-    ArrayBase(HSQUIRRELVM v) : Object(v, true) {
+    ArrayBase(HSQUIRRELVM v) : Object(v) {
     }
 
     ArrayBase(const Object& obj) : Object(obj) {

@@ -42,7 +42,7 @@ namespace Sqrat {
 class Script : public Object {
 public:
 
-    Script(HSQUIRRELVM v) : Object(v, true) {
+    Script(HSQUIRRELVM v) : Object(v) {
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

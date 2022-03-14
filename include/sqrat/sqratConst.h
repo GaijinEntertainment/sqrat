@@ -38,7 +38,7 @@ namespace Sqrat {
 
 class Enumeration : public Object {
 public:
-    Enumeration(HSQUIRRELVM v, bool createTable = true) : Object(v, false) {
+    Enumeration(HSQUIRRELVM v, bool createTable = true) : Object(v) {
         if(createTable) {
             sq_newtable(vm);
             SQRAT_VERIFY(SQ_SUCCEEDED(sq_getstackobj(vm,-1,&obj)));
@@ -74,7 +74,8 @@ public:
     ConstTable(HSQUIRRELVM v) : Enumeration(v, false) {
         sq_pushconsttable(vm);
         SQRAT_VERIFY(SQ_SUCCEEDED(sq_getstackobj(vm,-1, &obj)));
-        sq_pop(v,1); // No addref needed, since the consttable is always around
+        sq_addref(v, &obj);
+        sq_pop(v, 1);
     }
 
     virtual ConstTable& Const(const SQChar* name, const int val) {
