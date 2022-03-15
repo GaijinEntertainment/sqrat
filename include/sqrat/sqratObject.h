@@ -191,7 +191,8 @@ public:
     /// Attempts to get the value of a slot from the object
     /// \return An Object representing the value of the slot (can be a null object if nothing was found)
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    Object GetSlot(const SQChar* slot, bool raw=false) const {
+    template <bool raw>
+    Object GetSlotImpl(const SQChar* slot) const {
         HSQOBJECT slotObj;
         sq_pushobject(vm, GetObject());
         sq_pushstring(vm, slot, -1);
@@ -208,11 +209,20 @@ public:
         }
     }
 
+    Object GetSlot(const SQChar* slot) const {
+        return GetSlotImpl<false>(slot);
+    }
+
+    Object RawGetSlot(const SQChar* slot) const {
+        return GetSlotImpl<true>(slot);
+    }
+
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     /// Attempts to get the value of an index from the object
     /// \return An Object representing the value of the slot (can be a null object if nothing was found)
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    Object GetSlot(SQInteger index, bool raw=false) const {
+    template <bool raw>
+    Object GetSlotImpl(SQInteger index) const {
         HSQOBJECT slotObj;
         sq_pushobject(vm, GetObject());
         sq_pushinteger(vm, index);
@@ -229,17 +239,34 @@ public:
         }
     }
 
+    Object GetSlot(SQInteger index) const {
+        return GetSlotImpl<false>(index);
+    }
+
+    Object RawGetSlot(SQInteger index) const {
+        return GetSlotImpl<true>(index);
+    }
+
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     /// Attempts to get the value of an key from the object
     /// \param slot Key (of any type) of the slot
     /// \return An Object representing the value of the slot (can be a null object if nothing was found)
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    Object GetSlot(const Object& slot, bool raw=false) const {
+    template <bool raw>
+    Object GetSlotImpl(const Object& slot) const {
         SQRAT_ASSERT(slot.IsNull() || slot.GetVM() == vm);
         HSQOBJECT res;
         sq_direct_get(vm, &obj, &slot.obj, &res, raw);
         Object ret(res, vm);
         return ret;
+    }
+
+    Object GetSlot(const Object& slot) const {
+        return GetSlotImpl<false>(slot);
+    }
+
+    Object RawGetSlot(const Object& slot) const {
+        return GetSlotImpl<true>(slot);
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -264,7 +291,8 @@ public:
     }
 
     /// Gets object slot value as a certain C++ type
-    template<class T> T GetSlotValue(const SQChar* slot, T def_val, bool raw=false) const {
+    template<class T, bool raw>
+    T GetSlotValueImpl(const SQChar* slot, T def_val) const {
         static_assert(VarControlsValueLifeTime<T>::value == 0,
                       "direct cast to T failed due to value is bound to Var<T>");
         sq_pushobject(vm, GetObject());
@@ -281,7 +309,18 @@ public:
         }
     }
 
-    template<class T> T GetSlotValue(SQInteger slot, T def_val, bool raw=false) const {
+    template<class T>
+    T GetSlotValue(const SQChar* slot, T def_val) const {
+        return GetSlotValueImpl<T, false>(slot, def_val);
+    }
+
+    template<class T>
+    T RawGetSlotValue(const SQChar* slot, T def_val) const {
+        return GetSlotValueImpl<T, true>(slot, def_val);
+    }
+
+    template<class T, bool raw>
+    T GetSlotValueImpl(SQInteger slot, T def_val) const {
         static_assert(VarControlsValueLifeTime<T>::value == 0,
                       "direct cast to T failed due to value is bound to Var<T>");
         sq_pushobject(vm, GetObject());
@@ -298,8 +337,19 @@ public:
         }
     }
 
+    template<class T>
+    T GetSlotValue(SQInteger slot, T def_val) const {
+        return GetSlotValueImpl<T, false>(slot, def_val);
+    }
+
+    template<class T>
+    T RawGetSlotValue(SQInteger slot, T def_val) const {
+        return GetSlotValueImpl<T, true>(slot, def_val);
+    }
+
     /// Gets object slot value as a certain C++ type
-    template<class T> T GetSlotValue(const Object &key, T def_val, bool raw=false) const {
+    template<class T, bool raw>
+    T GetSlotValueImpl(const Object &key, T def_val) const {
         SQRAT_ASSERT(key.IsNull() || key.GetVM() == vm);
         static_assert(VarControlsValueLifeTime<T>::value == 0,
                       "direct cast to T failed due to value is bound to Var<T>");
@@ -313,15 +363,23 @@ public:
         return ret;
     }
 
+    template<class T>
+    T GetSlotValue(const Object &key, T def_val) const {
+        return GetSlotValueImpl<T, false>(key, def_val);
+    }
+
+    template<class T>
+    T RawGetSlotValue(const Object &key, T def_val) const {
+        return GetSlotValueImpl<T, true>(key, def_val);
+    }
+
     template <class T>
-    inline Object operator[](T slot)
-    {
+    inline Object operator[](T slot) {
         return GetSlot(slot);
     }
 
     template <class T>
-    const Object operator[](T slot) const
-    {
+    const Object operator[](T slot) const {
         return GetSlot(slot);
     }
 

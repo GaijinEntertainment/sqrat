@@ -128,11 +128,11 @@ public:
         return *this;
     }
 
-    bool HasKey(const SQChar* name) const
-    {
+    template <bool raw>
+    bool HasKeyImpl(const SQChar* name) const {
         sq_pushobject(vm, obj);
         sq_pushstring(vm, name, -1);
-        if (SQ_FAILED(sq_get_noerr(vm, -2))) {
+        if (SQ_FAILED(raw ? sq_rawget_noerr(vm, -2) : sq_get_noerr(vm, -2))) {
             sq_pop(vm, 1);
             return false;
         }
@@ -140,20 +140,36 @@ public:
         return true;
     }
 
-    bool HasKey(const Object &key, bool raw=false) const
-    {
+    bool HasKey(const SQChar* name) const {
+        return HasKeyImpl<false>(name);
+    }
+
+    bool RawHasKey(const SQChar* name) const {
+        return HasKeyImpl<true>(name);
+    }
+
+    bool HasKey(const Object &key) const {
         SQRAT_ASSERT(key.IsNull() || key.GetVM() == vm);
         const HSQOBJECT &hSelf = GetObject(), &hKey = key.GetObject();
         HSQOBJECT out;
-        return SQ_SUCCEEDED(sq_direct_get(vm, &hSelf, &hKey, &out, raw));
+        return SQ_SUCCEEDED(sq_direct_get(vm, &hSelf, &hKey, &out, /*raw*/ false));
     }
 
 
-    Function GetFunction(const SQChar* name) const {
+    bool RawHasKey(const Object &key) const {
+        SQRAT_ASSERT(key.IsNull() || key.GetVM() == vm);
+        const HSQOBJECT &hSelf = GetObject(), &hKey = key.GetObject();
+        HSQOBJECT out;
+        return SQ_SUCCEEDED(sq_direct_get(vm, &hSelf, &hKey, &out, /*raw*/ true));
+    }
+
+
+    template <bool raw>
+    Function GetFunctionImpl(const SQChar* name) const {
         HSQOBJECT funcObj;
         sq_pushobject(vm, GetObject());
         sq_pushstring(vm, name, -1);
-        if(SQ_FAILED(sq_get_noerr(vm, -2))) {
+        if(SQ_FAILED(raw ? sq_rawget_noerr(vm, -2) : sq_get_noerr(vm, -2))) {
             sq_pop(vm, 1);
             return Function();
         }
@@ -169,11 +185,20 @@ public:
         return ret;
     }
 
-    Function GetFunction(const SQInteger index) const {
+    Function GetFunction(const SQChar* name) const {
+        return GetFunctionImpl<false>(name);
+    }
+
+    Function RawGetFunction(const SQChar* name) const {
+        return GetFunctionImpl<true>(name);
+    }
+
+    template <bool raw>
+    Function GetFunctionImpl(const SQInteger index) const {
         HSQOBJECT funcObj;
         sq_pushobject(vm, GetObject());
         sq_pushinteger(vm, index);
-        if(SQ_FAILED(sq_get_noerr(vm, -2))) {
+        if(SQ_FAILED(raw ? sq_rawget_noerr(vm, -2) : sq_get_noerr(vm, -2))) {
             sq_pop(vm, 1);
             return Function();
         }
@@ -188,7 +213,8 @@ public:
         return ret;
     }
 
-    Function GetFunction(const Object& key, bool raw=false) const {
+    template <bool raw>
+    Function GetFunctionImpl(const Object& key) const {
         SQRAT_ASSERT(key.IsNull() || key.GetVM() == vm);
         const HSQOBJECT &hSelf = GetObject(), &hKey = key.GetObject();
         HSQOBJECT funcObj;
@@ -202,11 +228,19 @@ public:
         return ret;
     }
 
-    bool DeleteSlot(const SQChar* name) const
-    {
+    Function GetFunction(const Object& key) const {
+        return GetFunctionImpl<false>(key);
+    }
+
+    Function RawGetFunction(const Object& key) const {
+        return GetFunctionImpl<true>(key);
+    }
+
+    template <bool raw>
+    bool DeleteSlotImpl(const SQChar* name) const {
         sq_pushobject(vm, obj);
         sq_pushstring(vm, name, -1);
-        if (SQ_FAILED(sq_deleteslot(vm, -2, false))) {
+        if (SQ_FAILED(raw ? sq_rawdeleteslot(vm, -2, false) : sq_deleteslot(vm, -2, false))) {
             sq_pop(vm, 1);
             return false;
         }
@@ -214,11 +248,19 @@ public:
         return true;
     }
 
-    bool DeleteSlot(const Object &key) const
-    {
+    bool DeleteSlot(const SQChar* name) const {
+        return DeleteSlotImpl<false>(name);
+    }
+
+    bool RawDeleteSlot(const SQChar* name) const {
+        return DeleteSlotImpl<true>(name);
+    }
+
+    template <bool raw>
+    bool DeleteSlotImpl(const Object &key) const {
         sq_pushobject(vm, obj);
         sq_pushobject(vm, key.GetObject());
-        if (SQ_FAILED(sq_deleteslot(vm, -2, false))) {
+        if (SQ_FAILED(raw ? sq_rawdeleteslot(vm, -2, false) : sq_deleteslot(vm, -2, false))) {
             sq_pop(vm, 1);
             return false;
         }
@@ -226,8 +268,15 @@ public:
         return true;
     }
 
-    SQInteger Length() const
-    {
+    bool DeleteSlot(const Object &key) const {
+        return DeleteSlotImpl<false>(key);
+    }
+
+    bool RawDeleteSlot(const Object &key) const {
+        return DeleteSlotImpl<true>(key);
+    }
+
+    SQInteger Length() const {
         sq_pushobject(vm, obj);
         SQInteger r = sq_getsize(vm, -1);
         sq_pop(vm, 1);
