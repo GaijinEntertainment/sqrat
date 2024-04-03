@@ -64,9 +64,9 @@ struct AbstractStaticClassData {
     AbstractStaticClassData() {
         _ClassType_helper<>::all_classes.insert(this);
     }
-    AbstractStaticClassData(const AbstractStaticClassData &) = default;
+    AbstractStaticClassData(const AbstractStaticClassData &) = delete;
     AbstractStaticClassData(AbstractStaticClassData &&) = default;
-    AbstractStaticClassData& operator=(const AbstractStaticClassData &) = default;
+    AbstractStaticClassData& operator=(const AbstractStaticClassData &) = delete;
     AbstractStaticClassData& operator=(AbstractStaticClassData &&) = default;
     virtual ~AbstractStaticClassData() {
         _ClassType_helper<>::all_classes.erase(this);
