@@ -1,9 +1,5 @@
 Sqrat - Quirrel Binding Utility
 
-© 2009 Brandon Jones
-© 2011-2014 Li-Cheng (Andy) Tai
-© 2013-2015 Brandon Haffen AKA Wizzard
-© 2016-2019 Gaijin Entertainment
+Sqrat was moved to the [Quirrel](https://github.com/GaijinEntertainment/quirrel) repository.
 
-
-Sqrat is a C++ binding utility for the quirrel language.
+Quirrel and Squirrel languages are not compatible any more - keep Sqrat and Quirrel sources together to maintain compatibiltiy.
